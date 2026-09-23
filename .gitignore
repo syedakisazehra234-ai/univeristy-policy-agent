@@ -1,0 +1,52 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Build files
+build/
+dist/
+*.egg-info/
+
+# Model/cache directories
+.cache/
+huggingface_cache/
+
+# Do NOT upload original source documents
+documents/
+data/raw/
+*.pdf
+*.docx
+*.doc
