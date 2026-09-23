@@ -194,9 +194,15 @@ if user_question:
         ):
 
             try:
-                answer = ask_university_policy(
-                    user_question
-                )
+                conversation_context = "\n".join(
+    f"{message['role'].upper()}: {message['content']}"
+    for message in st.session_state.messages[-10:]
+)
+
+answer = ask_university_policy(
+    user_message=user_question,
+    conversation_context=conversation_context,
+)
 
             except Exception as exc:
 
