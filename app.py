@@ -175,7 +175,20 @@ if user_question:
     if not user_question:
         st.stop()
 
-    # Store user message.
+    # -----------------------------------------------------
+    # Build conversation context BEFORE adding the new
+    # user message.
+    # -----------------------------------------------------
+
+    conversation_context = "\n".join(
+        f"{message['role'].upper()}: {message['content']}"
+        for message in st.session_state.messages[-10:]
+    )
+
+    # -----------------------------------------------------
+    # Store user message
+    # -----------------------------------------------------
+
     st.session_state.messages.append(
         {
             "role": "user",
@@ -186,39 +199,42 @@ if user_question:
     with st.chat_message("user"):
         st.markdown(user_question)
 
-    # Generate answer.
+    # -----------------------------------------------------
+    # Generate answer
+    # -----------------------------------------------------
+
     with st.chat_message("assistant"):
 
-        with st.spinner(
-            "Searching university policies..."
-        ):
+        with st.spinner("Searching university policies..."):
 
             try:
-                conversation_context = "\n".join(
-    f"{message['role'].upper()}: {message['content']}"
-    for message in st.session_state.messages[-10:]
-)
 
-answer = ask_university_policy(
-    user_message=user_question,
-    conversation_context=conversation_context,
-)
+                answer = ask_university_policy(
+                    user_message=user_question,
+                    conversation_context=conversation_context,
+                )
 
             except Exception as exc:
 
+                # Show the real error during deployment/debugging.
+                st.exception(exc)
+
                 answer = (
-                    "### Application Error\n\n"
-                    f"`{type(exc).__name__}: {exc}`\n\n"
-                    "Please check the application configuration "
-                    "and knowledge-base files."
+                    "Sorry, the assistant encountered an error "
+                    "while processing your request. Please try "
+                    "again."
                 )
 
         st.markdown(answer)
 
-    # Store assistant message.
+    # -----------------------------------------------------
+    # Store assistant message
+    # -----------------------------------------------------
+
     st.session_state.messages.append(
         {
             "role": "assistant",
             "content": answer,
         }
     )
+
