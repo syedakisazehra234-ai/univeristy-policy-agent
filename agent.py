@@ -3,24 +3,20 @@ import os
 # ============================================================
 # CrewAI/Groq compatibility fix
 # ============================================================
-#
-# Some CrewAI versions inject `cache_breakpoint` into messages.
-# Groq rejects that property for its OpenAI-compatible API.
-#
-# Groq now performs prompt caching automatically, so we do not
-# need CrewAI to manually mark cache breakpoints.
-#
-# This patch must run BEFORE creating the Agent.
-# ============================================================
 
 import crewai.llms.cache as _crewai_cache
 
 _crewai_cache.mark_cache_breakpoint = lambda message: message
 
-
-import os
+# ============================================================
+# CrewAI imports
+# ============================================================
 
 from crewai import Agent, Crew, LLM, Task
+
+# ============================================================
+# Project tools
+# ============================================================
 
 from tools.policy_search import policy_search_tool
 from tools.escalation import escalation_tool
