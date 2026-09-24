@@ -18,11 +18,12 @@ import crewai.llms.cache as _crewai_cache
 _crewai_cache.mark_cache_breakpoint = lambda message: message
 
 
+import os
+
 from crewai import Agent, Crew, LLM, Task
 
 from tools.policy_search import policy_search_tool
 from tools.escalation import escalation_tool
-
 
 # ============================================================
 # Environment configuration
