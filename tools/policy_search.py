@@ -7,20 +7,13 @@ from sentence_transformers import SentenceTransformer
 from crewai.tools import tool
 
 
-@tool("University Policy Search")
-def policy_search_tool(query: str) -> str:
-    """
-    Search the university policy knowledge base.
-    """
-
-    return "Policy search tool is working."
-
-
 # ============================================================
 # Paths
 # ============================================================
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))
+)
 
 FAISS_PATH = os.path.join(
     BASE_DIR,
@@ -51,13 +44,9 @@ MIN_SIMILARITY = float(
     os.getenv("MIN_SIMILARITY", "0.25")
 )
 
-MAX_CONTEXT_CHARS = int(
-    os.getenv("MAX_CONTEXT_CHARS", "12000")
-)
-
 
 # ============================================================
-# Load knowledge base
+# Load FAISS index
 # ============================================================
 
 if not os.path.exists(FAISS_PATH):
@@ -65,13 +54,17 @@ if not os.path.exists(FAISS_PATH):
         f"FAISS index not found: {FAISS_PATH}"
     )
 
+index = faiss.read_index(FAISS_PATH)
+
+
+# ============================================================
+# Load chunks
+# ============================================================
+
 if not os.path.exists(CHUNKS_PATH):
     raise FileNotFoundError(
         f"chunks.json not found: {CHUNKS_PATH}"
     )
-
-
-index = faiss.read_index(FAISS_PATH)
 
 with open(
     CHUNKS_PATH,
@@ -82,7 +75,7 @@ with open(
 
 
 # ============================================================
-# Embedding model
+# Load embedding model
 # ============================================================
 
 embedding_model = SentenceTransformer(
@@ -91,14 +84,14 @@ embedding_model = SentenceTransformer(
 
 
 # ============================================================
-# Policy Search Tool
+# University Policy Search Tool
 # ============================================================
 
 @tool("University Policy Search")
 def policy_search_tool(query: str) -> str:
     """
-    Search the university policy knowledge base and return
-    the most relevant policy passages with source information.
+    Search the university policy knowledge base using
+    semantic similarity.
     """
 
     if not query or not query.strip():
@@ -106,7 +99,10 @@ def policy_search_tool(query: str) -> str:
 
     query = query.strip()
 
-    # Create query embedding
+    # --------------------------------------------------------
+    # Create embedding for user's question
+    # --------------------------------------------------------
+
     query_embedding = embedding_model.encode(
         [query],
         normalize_embeddings=True,
@@ -117,13 +113,20 @@ def policy_search_tool(query: str) -> str:
         dtype="float32",
     )
 
+    # --------------------------------------------------------
     # Search FAISS
+    # --------------------------------------------------------
+
     scores, indices = index.search(
         query_embedding,
         TOP_K,
     )
 
     results = []
+
+    # --------------------------------------------------------
+    # Get matching chunks
+    # --------------------------------------------------------
 
     for score, idx in zip(
         scores[0],
@@ -140,24 +143,25 @@ def policy_search_tool(query: str) -> str:
 
         chunk = chunks[idx]
 
-        text = chunk.get(
-            "text",
-            "",
-        )
+        text = chunk.get("text", "")
 
         if not text:
             continue
 
-        source = chunk.get(
-            "source",
-            chunk.get(
-                "source_file",
-                "Unknown source",
-            ),
+        source = (
+            chunk.get("source")
+            or chunk.get("source_file")
+            or chunk.get("filename")
+            or "Unknown source"
         )
 
         page = chunk.get(
             "page",
+            "Unknown page",
+        )
+
+        chunk_number = chunk.get(
+            "chunk_number",
             "Unknown",
         )
 
@@ -166,19 +170,28 @@ def policy_search_tool(query: str) -> str:
                 "score": score,
                 "source": source,
                 "page": page,
+                "chunk": chunk_number,
                 "text": text,
             }
         )
 
+    # --------------------------------------------------------
+    # No relevant results
+    # --------------------------------------------------------
+
     if not results:
+
         return (
             "NO_RELEVANT_POLICY_FOUND\n\n"
             "The university policy knowledge base does not "
-            "contain sufficiently relevant information for "
-            "this question."
+            "contain sufficiently relevant information to "
+            "answer this question."
         )
 
-    # Build context
+    # --------------------------------------------------------
+    # Format results
+    # --------------------------------------------------------
+
     output = []
 
     for number, result in enumerate(
@@ -189,8 +202,10 @@ def policy_search_tool(query: str) -> str:
         output.append(
             f"""
 SOURCE {number}
+
 Source: {result["source"]}
 Page: {result["page"]}
+Chunk: {result["chunk"]}
 Similarity: {result["score"]:.4f}
 
 Policy text:
@@ -198,6 +213,4 @@ Policy text:
 """.strip()
         )
 
-    final_context = "\n\n---\n\n".join(output)
-
-    return final_context[:MAX_CONTEXT_CHARS]
+    return "\n\n--------------------\n\n".join(output)
