@@ -7,6 +7,15 @@ from sentence_transformers import SentenceTransformer
 from crewai.tools import tool
 
 
+@tool("University Policy Search")
+def policy_search_tool(query: str) -> str:
+    """
+    Search the university policy knowledge base.
+    """
+
+    return "Policy search tool is working."
+
+
 # ============================================================
 # Paths
 # ============================================================
